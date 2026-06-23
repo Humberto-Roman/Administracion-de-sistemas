@@ -1,0 +1,196 @@
+# Script: check_status.ps1
+# Descripción: Configura hostname, actualiza sistema y muestra diagnóstico
+# Uso: Ejecutar como Administrador en PowerShell
+
+# Función para mostrar mensajes con colores
+function Write-Status {
+    param([string]$Message, [string]$Type = "INFO")
+    
+    switch ($Type) {
+        "SUCCESS" { Write-Host "[✓] $Message" -ForegroundColor Green }
+        "ERROR"   { Write-Host "[✗] $Message" -ForegroundColor Red }
+        "WARNING" { Write-Host "[!] $Message" -ForegroundColor Yellow }
+        default   { Write-Host "[i] $Message" -ForegroundColor Cyan }
+    }
+}
+
+# Verificar que se ejecuta como Administrador
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Write-Host "[✗] Este script debe ejecutarse como Administrador" -ForegroundColor Red
+    Write-Host "    Por favor, ejecuta PowerShell como Administrador y vuelve a intentar" -ForegroundColor Yellow
+    exit 1
+}
+
+# Encabezado
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "    CONFIGURACIÓN Y DIAGNÓSTICO        " -ForegroundColor Yellow
+Write-Host "    Windows Server 2022                " -ForegroundColor Yellow
+Write-Host "========================================" -ForegroundColor Yellow
+
+# ==================== SECCIÓN 1: CONFIGURAR HOSTNAME ====================
+Write-Host "`n1. CONFIGURANDO HOSTNAME..." -ForegroundColor Cyan
+
+$currentHostname = $env:COMPUTERNAME
+$desiredHostname = "Srv-Win-Sistemas"
+
+if ($currentHostname -ne $desiredHostname) {
+    Write-Status "Cambiando hostname de '$currentHostname' a '$desiredHostname'" "INFO"
+    
+    # Configurar nuevo hostname
+    try {
+        Rename-Computer -NewName $desiredHostname -Force -Restart:$false
+        Write-Status "Hostname configurado como '$desiredHostname'" "SUCCESS"
+        Write-Status "El cambio se aplicará después de reiniciar el sistema" "WARNING"
+    }
+    catch {
+        Write-Status "Error al cambiar hostname: $_" "ERROR"
+    }
+}
+else {
+    Write-Status "Hostname ya está configurado como '$desiredHostname'" "SUCCESS"
+}
+
+# ==================== SECCIÓN 2: ACTUALIZAR SISTEMA ====================
+Write-Host "`n2. ACTUALIZANDO SISTEMA..." -ForegroundColor Cyan
+
+Write-Status "Buscando actualizaciones disponibles..." "INFO"
+
+# Instalar módulo de Windows Update si no está presente
+if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate)) {
+    Write-Status "Instalando módulo PSWindowsUpdate..." "INFO"
+    Install-Module PSWindowsUpdate -Force -Confirm:$false -SkipPublisherCheck
+}
+
+# Importar módulo
+Import-Module PSWindowsUpdate
+
+# Buscar actualizaciones (sin instalar)
+Write-Status "Listando actualizaciones disponibles..." "INFO"
+$updates = Get-WindowsUpdate
+if ($updates.Count -gt 0) {
+    Write-Status "Se encontraron $($updates.Count) actualizaciones disponibles" "INFO"
+    
+    # Preguntar si instalar
+    $install = Read-Host "`n¿Deseas instalar las actualizaciones ahora? (S/N)"
+    if ($install -eq "S" -or $install -eq "s") {
+        Write-Status "Instalando actualizaciones..." "INFO"
+        Get-WindowsUpdate -Install -AcceptAll -AutoReboot:$false
+        Write-Status "Actualizaciones instaladas correctamente" "SUCCESS"
+    }
+    else {
+        Write-Status "Actualizaciones no instaladas (opción del usuario)" "WARNING"
+    }
+}
+else {
+    Write-Status "El sistema ya está actualizado" "SUCCESS"
+}
+
+# ==================== SECCIÓN 3: DIAGNÓSTICO DEL SISTEMA ====================
+Write-Host "`n3. DIAGNÓSTICO DEL SISTEMA" -ForegroundColor Cyan
+Write-Host "----------------------------------------" -ForegroundColor Yellow
+
+# 3.1. Nombre del equipo
+Write-Host "Nombre del equipo:" -ForegroundColor Blue
+Write-Host "  $env:COMPUTERNAME" -ForegroundColor White
+Write-Host ""
+
+# 3.2. IP actual
+Write-Host "Direcciones IP configuradas:" -ForegroundColor Blue
+$networkAdapters = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" }
+
+if ($networkAdapters) {
+    foreach ($adapter in $networkAdapters) {
+        $interfaceName = $adapter.InterfaceAlias
+        $ipAddress = $adapter.IPAddress
+        $prefixLength = $adapter.PrefixLength
+        
+        # Calcular máscara de red
+        $mask = [Math]::Pow(2, 32) - [Math]::Pow(2, (32 - $prefixLength))
+        $maskBytes = [BitConverter]::GetBytes([UInt32]$mask)
+        $subnetMask = "$($maskBytes[3]).$($maskBytes[2]).$($maskBytes[1]).$($maskBytes[0])"
+        
+        Write-Host "  $interfaceName:" -ForegroundColor Cyan
+        Write-Host "    IP: $ipAddress/$prefixLength" -ForegroundColor White
+        Write-Host "    Máscara: $subnetMask" -ForegroundColor White
+        
+        # Resaltar IP de red interna (192.168.56.x)
+        if ($ipAddress -like "192.168.56.*") {
+            Write-Host "    ← IP de red interna" -ForegroundColor Green
+        }
+        
+        # Obtener información del adaptador
+        $adapterInfo = Get-NetAdapter -Name $interfaceName -ErrorAction SilentlyContinue
+        if ($adapterInfo) {
+            Write-Host "    Estado: $($adapterInfo.Status)" -ForegroundColor White
+            Write-Host "    Velocidad: $($adapterInfo.LinkSpeed)" -ForegroundColor White
+        }
+        Write-Host ""
+    }
+}
+else {
+    Write-Host "  No se encontraron adaptadores de red configurados" -ForegroundColor Red
+}
+Write-Host ""
+
+# 3.3. Espacio en disco
+Write-Host "Espacio en disco:" -ForegroundColor Blue
+$disks = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -gt 0 }
+
+if ($disks) {
+    foreach ($disk in $disks) {
+        $freeGB = [math]::Round($disk.Free / 1GB, 2)
+        $usedGB = [math]::Round($disk.Used / 1GB, 2)
+        $totalGB = [math]::Round(($disk.Free + $disk.Used) / 1GB, 2)
+        $percentFree = [math]::Round(($disk.Free / ($disk.Free + $disk.Used)) * 100, 2)
+        $percentUsed = 100 - $percentFree
+        
+        # Barra de progreso visual
+        $barLength = 20
+        $usedBars = [math]::Round($percentUsed / 100 * $barLength)
+        $freeBars = $barLength - $usedBars
+        $progressBar = "[" + ("█" * $usedBars) + ("░" * $freeBars) + "]"
+        
+        Write-Host "  Unidad $($disk.Name):" -ForegroundColor Cyan
+        Write-Host "    $progressBar $percentUsed% usado" -ForegroundColor White
+        Write-Host "    Total: ${totalGB}GB | Usado: ${usedGB}GB | Libre: ${freeGB}GB" -ForegroundColor White
+        Write-Host "    Ruta: $($disk.Root)" -ForegroundColor White
+        Write-Host ""
+    }
+}
+else {
+    Write-Host "  No se encontraron unidades de disco" -ForegroundColor Red
+}
+
+# 3.4. Información adicional del sistema
+Write-Host "Información adicional:" -ForegroundColor Blue
+
+# Uptime
+$os = Get-CimInstance -ClassName Win32_OperatingSystem
+$uptime = (Get-Date) - $os.LastBootUpTime
+$uptimeString = "{0} días, {1} horas, {2} minutos" -f $uptime.Days, $uptime.Hours, $uptime.Minutes
+Write-Host "  Tiempo activo: $uptimeString" -ForegroundColor White
+
+# Memoria
+$memory = Get-CimInstance -ClassName Win32_OperatingSystem
+$totalMemory = [math]::Round($memory.TotalVisibleMemorySize / 1MB, 2)
+$freeMemory = [math]::Round($memory.FreePhysicalMemory / 1MB, 2)
+$usedMemory = $totalMemory - $freeMemory
+$memoryPercent = [math]::Round(($usedMemory / $totalMemory) * 100, 2)
+Write-Host "  Memoria: ${usedMemory}GB/${totalMemory}GB usados ($memoryPercent%)" -ForegroundColor White
+
+# Procesos
+$processCount = (Get-Process).Count
+Write-Host "  Procesos activos: $processCount" -ForegroundColor White
+
+# Servicios
+$serviceCount = (Get-Service).Count
+$runningServices = (Get-Service | Where-Object { $_.Status -eq 'Running' }).Count
+Write-Host "  Servicios: $runningServices/$serviceCount ejecutándose" -ForegroundColor White
+ White
+
+Write-Host "`n[✓] Script ejecutado correctamente" -ForegroundColor Green
+Write-Host "[✓] Sistema preparado para automatización" -ForegroundColor Green
+
+Write-Host "`nFecha y hora de ejecución: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Yellow

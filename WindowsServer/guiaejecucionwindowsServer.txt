@@ -1,0 +1,135 @@
+=======================================================================
+  GUÍA DE EJECUCIÓN DE PRÁCTICAS - WINDOWS SERVER (PowerShell)
+=======================================================================
+Rutas base: C:\Scripts\Tarea1 .. Tarea12
+Ejecutar siempre PowerShell como Administrador.
+Si hay problemas de ejecución de scripts:
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+=======================================================================
+PRÁCTICA 1 - Diagnóstico del Sistema
+=======================================================================
+mkdir C:\Scripts\Tarea1 -Force
+cd C:\Scripts\Tarea1
+notepad check_status.ps1        # pega el script de la práctica 1 (Windows)
+.\check_status.ps1
+
+=======================================================================
+PRÁCTICA 2 - Servidor DHCP Automatizado
+=======================================================================
+mkdir C:\Scripts\Tarea2 -Force
+cd C:\Scripts\Tarea2
+notepad dhcp_windows.ps1        # pega el script de DHCP Windows
+.\dhcp_windows.ps1
+# Menú interactivo: 1 → instalar/configurar, 2 → monitorear, 3 → salir
+
+=======================================================================
+PRÁCTICA 3 - Servidor DNS (reprobados.com)
+=======================================================================
+mkdir C:\Scripts\Tarea3 -Force
+cd C:\Scripts\Tarea3
+notepad dns_reprobados.ps1      # pega el script de DNS Windows
+.\dns_reprobados.ps1 -Force     # -Force para reconfigurar si ya existe
+
+=======================================================================
+PRÁCTICA 4 - SSH + Refactorización Modular (Windows)
+=======================================================================
+mkdir C:\Scripts\Tarea4\Modules -Force
+cd C:\Scripts\Tarea4
+# Crear los archivos del módulo (usa notepad para cada uno):
+notepad Comunes.ps1
+notepad Diagnostico.ps1
+notepad DNS.ps1
+notepad DHCP.ps1
+notepad SSH.ps1
+notepad Main.ps1
+# Ejecutar el menú principal:
+.\Main.ps1
+# Opción 4 instala OpenSSH Server y habilita el firewall
+
+=======================================================================
+PRÁCTICA 5 - Servidor FTP (IIS)
+=======================================================================
+mkdir C:\Scripts\Tarea5 -Force
+cd C:\Scripts\Tarea5
+notepad ftp_windows.ps1         # pega el script de instalación/configuración FTP
+.\ftp_windows.ps1
+# Instala IIS con FTP, crea estructura, configura usuario.
+
+=======================================================================
+PRÁCTICA 6 - Servidores HTTP Multi-Versión (Windows)
+=======================================================================
+mkdir C:\Scripts\Tarea6 -Force
+cd C:\Scripts\Tarea6
+notepad HTTP_Functions.ps1      # pega el módulo de menú web (Apache/Nginx/IIS)
+.\HTTP_Functions.ps1
+# Elige servicio, versión y puerto.
+
+=======================================================================
+PRÁCTICA 7 - SSL/TLS y Orquestador FTP (Windows)
+=======================================================================
+mkdir C:\Scripts\Tarea7 -Force
+cd C:\Scripts\Tarea7
+notepad SSL_Config.ps1          # módulo SSL (IIS, Apache, Nginx, IIS-FTP)
+notepad FTP_Orchestrator.ps1    # orquestador FTP dinámico
+.\SSL_Config.ps1                # menú SSL
+.\FTP_Orchestrator.ps1          # instalación desde repositorio FTP
+
+=======================================================================
+PRÁCTICA 8 - Dominio, GPO, Cuotas, AppLocker
+=======================================================================
+mkdir C:\Scripts\Tarea8 -Force
+cd C:\Scripts\Tarea8
+# Preparar un archivo CSV de usuarios (usuarios.csv) con los campos:
+# Nombre,Apellido,SamAccountName,Departamento,Password
+notepad practica8_dominio.ps1   # script principal de la práctica 8
+.\practica8_dominio.ps1
+# El script pide la ruta del CSV y ejecuta toda la configuración.
+
+=======================================================================
+PRÁCTICA 9 - Hardening AD, RBAC y MFA
+=======================================================================
+mkdir C:\Scripts\Tarea9 -Force
+cd C:\Scripts\Tarea9
+notepad practica9_hardening.ps1 # script de hardening (roles, FGPP, auditoría, MFA)
+.\practica9_hardening.ps1
+# Sigue las instrucciones en pantalla.
+
+=======================================================================
+PRÁCTICA 10 - Contenedores Docker (Servicios Base)
+=======================================================================
+Asegúrate de tener Docker Desktop instalado y configurado para usar
+contenedores Linux (o Docker Engine con WSL2).
+mkdir C:\Scripts\Tarea10 -Force
+cd C:\Scripts\Tarea10
+# Crea todos los archivos necesarios (Dockerfile.web, Dockerfile.ftp,
+# Dockerfile.db, docker-compose.yml, etc.) con notepad.
+# Puedes copiarlos directamente del repositorio o crearlos manualmente.
+docker-compose up -d --build
+
+=======================================================================
+PRÁCTICA 11 - Orquestación Microservicios + Túnel SSH
+=======================================================================
+mkdir C:\Scripts\Tarea11 -Force
+cd C:\Scripts\Tarea11
+# Crear .env, docker-compose.yml, carpetas nginx/ssl, app_web, etc.
+# Genera un certificado autofirmado con OpenSSL (si está instalado) o
+# utiliza el comando New-SelfSignedCertificate de PowerShell.
+docker-compose up -d
+# Acceso al panel vía túnel SSH: desde una terminal SSH al host,
+# ssh -L 8080:pgadmin:80 usuario@ip_servidor
+
+=======================================================================
+PRÁCTICA 12 - Correo Privado + Webmail Roundcube
+=======================================================================
+mkdir C:\Scripts\Tarea12 -Force
+cd C:\Scripts\Tarea12
+# Crear .env, docker-compose.yml, backup.sh, mailserver/postfix-accounts.cf, etc.
+# Genera los hashes de las contraseñas con el contenedor Alpine (puedes usar WSL).
+# Levanta los servicios:
+docker-compose up -d
+# Webmail en https://localhost
+
+=======================================================================
+  FIN DE LA GUÍA
+=======================================================================
