@@ -1,0 +1,1 @@
+docker run --rm alpine:3.19 sh -c "apk add --no-cache dovecot-fts && doveadm pw -s SHA512-CRYPT -p 'Director123'"

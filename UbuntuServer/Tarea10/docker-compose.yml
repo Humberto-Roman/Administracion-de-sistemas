@@ -1,0 +1,54 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    container_name: web_server
+    hostname: web
+    ports: ["80:80"]
+    volumes:
+      - web_content:/usr/share/nginx/html/uploads
+    networks:
+      infra_red:
+        ipv4_address: 172.20.0.2
+    deploy:
+      resources:
+        limits: {cpus: '0.5', memory: 512M}
+  ftp:
+    build:
+      context: .
+      dockerfile: Dockerfile.ftp
+    container_name: ftp_server
+    hostname: ftp
+    ports: ["21:21","21100-21110:21100-21110"]
+    volumes:
+      - web_content:/srv/ftp
+    networks:
+      infra_red:
+        ipv4_address: 172.20.0.3
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    container_name: db_server
+    hostname: db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    ports: ["5432:5432"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - backup_data:/backups
+    networks:
+      infra_red:
+        ipv4_address: 172.20.0.4
+volumes:
+  web_content:
+  db_data:
+  backup_data:
+networks:
+  infra_red:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

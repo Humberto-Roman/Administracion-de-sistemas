@@ -1,0 +1,144 @@
+=======================================================================
+  GUÍA DE EJECUCIÓN DE PRÁCTICAS - LINUX (Ubuntu Server)
+=======================================================================
+Rutas base: ~/Scripts/Tarea1 .. Tarea12
+Usuario: admin (o el que hayas creado)
+Antes de cada práctica, asegúrate de estar en la carpeta correcta.
+
+=======================================================================
+PRÁCTICA 1 - Diagnóstico del Sistema
+=======================================================================
+cd ~/Scripts/Tarea1
+nano check_status.sh          # pega el script
+chmod +x check_status.sh
+./check_status.sh
+
+=======================================================================
+PRÁCTICA 2 - Servidor DHCP Automatizado
+=======================================================================
+cd ~/Scripts/Tarea2
+nano dhcp_linux.sh
+chmod +x dhcp_linux.sh
+sudo ./dhcp_linux.sh
+# Menú: 1 → instalar/configurar, 2 → monitorear, 3 → salir
+
+=======================================================================
+PRÁCTICA 3 - Servidor DNS (reprobados.com)
+=======================================================================
+cd ~/Scripts/Tarea3
+nano dns_reprobados.sh
+chmod +x dns_reprobados.sh
+sudo ./dns_reprobados.sh
+# Pide IP servidor, máscara e IP cliente destino para los registros
+
+=======================================================================
+PRÁCTICA 4 - SSH + Refactorización Modular
+=======================================================================
+cd ~/Scripts/Tarea4
+mkdir -p lib
+nano main.sh
+nano lib/comunes.sh
+nano lib/diagnostico.sh
+nano lib/dns.sh
+nano lib/dhcp.sh
+nano lib/ssh.sh
+chmod +x main.sh lib/*.sh
+sudo ./main.sh
+
+=======================================================================
+PRÁCTICA 5 - Servidor FTP
+=======================================================================
+cd ~/Scripts/Tarea5
+nano ftp_linux.sh
+chmod +x ftp_linux.sh
+sudo ./ftp_linux.sh
+# Usuario: ftpuser / Contraseña: ftppass
+
+=======================================================================
+PRÁCTICA 6 - Servidores HTTP Multi-Versión
+=======================================================================
+cd ~/Scripts/Tarea6
+nano http_functions.sh
+# Añade al final del archivo: menu_servidores_web
+chmod +x http_functions.sh
+sudo ./http_functions.sh
+# Elige Apache, Nginx o Tomcat e ingresa el puerto
+
+=======================================================================
+PRÁCTICA 7 - SSL/TLS y Orquestador FTP
+=======================================================================
+cd ~/Scripts/Tarea7
+nano ssl_config.sh
+nano ftp_orchestrator.sh
+chmod +x ssl_config.sh ftp_orchestrator.sh
+sudo ./ssl_config.sh          # activar SSL en Apache/Nginx/vsftpd
+sudo ./ftp_orchestrator.sh    # instalar desde repositorio FTP
+
+=======================================================================
+PRÁCTICA 8 - Unir Linux al Dominio
+=======================================================================
+cd ~/Scripts/Tarea8
+nano unirse_dominio.sh
+chmod +x unirse_dominio.sh
+sudo ./unirse_dominio.sh
+# Requiere DC Windows accesible y credenciales de administrador
+
+=======================================================================
+PRÁCTICA 9 - MFA y Hardening AD
+=======================================================================
+No aplica en Linux (solo Windows Server).
+
+=======================================================================
+PRÁCTICA 10 - Contenedores Docker (Web, FTP, BD)
+=======================================================================
+cd ~/Scripts/Tarea10
+# Crea los Dockerfiles y docker-compose.yml (según la práctica 10)
+nano docker-compose.yml
+nano Dockerfile.web
+nano Dockerfile.ftp
+nano Dockerfile.db
+nano docker-entrypoint.sh
+mkdir -p ftp db web
+nano ftp/vsftpd.conf
+nano db/backup.sh
+nano web/index.html
+sudo docker-compose up -d --build
+
+=======================================================================
+PRÁCTICA 11 - Orquestación Microservicios + Túnel SSH
+=======================================================================
+cd ~/Scripts/Tarea11
+nano .env
+nano docker-compose.yml
+mkdir -p nginx/ssl app_web
+nano nginx/default.conf
+nano app_web/index.html
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/mail.reprobados.com.key \
+  -out nginx/ssl/mail.reprobados.com.crt \
+  -subj "/CN=localhost"
+sudo docker-compose up -d
+# Acceso a pgAdmin vía túnel: ssh -L 8080:pgadmin:80 admin@localhost
+
+=======================================================================
+PRÁCTICA 12 - Correo Privado + Webmail Roundcube
+=======================================================================
+cd ~/Scripts/Tarea12
+nano .env
+nano docker-compose.yml
+nano backup.sh
+mkdir -p mailserver nginx/ssl
+# Genera hashes de contraseñas:
+docker run --rm alpine:3.19 sh -c "apk add --no-cache dovecot-fts && doveadm pw -s SHA512-CRYPT -p 'Director123'"
+# Copia la salida en mailserver/postfix-accounts.cf (formato: director@reprobados.com|{SHA512-CRYPT}...)
+# Repite para admin@reprobados.com
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/mail.reprobados.com.key \
+  -out nginx/ssl/mail.reprobados.com.crt \
+  -subj "/CN=mail.reprobados.com"
+sudo docker-compose up -d
+# Webmail en https://localhost, acepta el certificado autofirmado.
+
+=======================================================================
+  FIN DE LA GUÍA
+=======================================================================

@@ -1,0 +1,7 @@
+FROM alpine:latest
+RUN apk add --no-cache vsftpd bash
+RUN adduser -D -h /srv/ftp ftpuser && echo "ftpuser:ftppass" | chpasswd
+RUN mkdir -p /srv/ftp && chown ftpuser:ftpuser /srv/ftp
+COPY ftp/vsftpd.conf /etc/vsftpd/vsftpd.conf
+EXPOSE 21 21100-21110
+CMD ["vsftpd", "/etc/vsftpd/vsftpd.conf"]
